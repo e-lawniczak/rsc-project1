@@ -143,17 +143,29 @@ class DataPreprocessingToolkit(object):
         ########################
         # Write your code here #
         ########################
-        def check_for_weekdays(row):
-            date = row['date_from']
-            endDate = row['date_to']
-            while date <= endDate:
-                wd = date.dayofweek
-                if wd == 5 or wd == 4:
+#         def check_for_weekdays(row):
+#             date = row['date_from']
+#             endDate = row['date_to']
+#             while date <= endDate:
+#                 wd = date.dayofweek
+#                 if wd == 5 or wd == 4:
                     
-                    return True
-                date = date + pd.DateOffset(1)
+#                     return 'True'
+#                 date = date + timedelta(days=1)
                 
-            return False
+#             return 'False'
+#         def check_for_weekdays(row):
+#             date = row['date_from'].dayofweek
+#             endDate = row['date_to'].dayofweek
+#             duration = (row['date_to'] - row['date_from']).days
+#             if duration >= 6 or date == 4 or date == 5 or endDate == 4 or endDate == 5 or (date + duration)%7 >= 4:
+#                 return 'True'
+#             return 'False'
+        def check_for_weekdays(row):
+            s = row['date_from'].dayofweek
+            e = row['date_to'].dayofweek
+            dt = (row['date_to'] - row['date_from']).days
+            return str( ((s >= 4) & (s != 6)) | ( e>=5) | ((e < s) & (s != 6)) | (dt >= 6) )
         
         df['weekend_stay'] = df.apply(lambda x: check_for_weekdays(x), axis=1)
         return df
@@ -251,26 +263,16 @@ class DataPreprocessingToolkit(object):
         ########################
         # Write your code here #
         ########################
-#         print(self.sum_columns )
-#         print(self.mean_columns )
-#         print(self.mode_columns )
-#         print(self.first_columns )
         
-        
-        a = group_reservations.groupby('group_id')[self.sum_columns].apply(lambda x : x.sum())
-        b = group_reservations.groupby('group_id')[self.mean_columns].mean()
-        c = group_reservations.groupby('group_id')[self.mode_columns].agg(lambda x: x.value_counts().index[0])
-        d = group_reservations.groupby('group_id')[self.first_columns].first()
+        sum_columns_df = group_reservations.groupby('group_id')[self.sum_columns].apply(lambda x : x.sum())
+        mean_columns_df = group_reservations.groupby('group_id')[self.mean_columns].mean()
+        mode_columns_df = group_reservations.groupby('group_id')[self.mode_columns].agg(lambda x: x.value_counts().index[0])
+        firstvalue_columns_df = group_reservations.groupby('group_id')[self.first_columns].first()
  
-        a = pd.concat([a, b,c,d], axis=1)
-        group_reservations.merge(a, how="inner", on="group_id")
-       
+        group_reservations = pd.concat([sum_columns_df, mean_columns_df, mode_columns_df, firstvalue_columns_df], axis=1)
         
-        non_group_reservations = pd.concat([non_group_reservations, group_reservations], axis=0)
+        non_group_reservations = pd.concat([non_group_reservations, group_reservations])
         
-#         display(non_group_reservations.head(10))
-#         display(group_reservations.head(10))
-    
         return non_group_reservations
 
     @staticmethod
@@ -314,6 +316,18 @@ class DataPreprocessingToolkit(object):
         ########################
         # Write your code here #
         ########################
+        groupped_reservations = df.groupby('room_group_id')['night_price'].mean().reset_index()
+        groupped_reservations['night_price'] = groupped_reservations['night_price'].apply(lambda x: np.round(x,2))
+        
+        def check_room_segment(row):
+            room_row = groupped_reservations.loc[groupped_reservations['room_group_id'] == row['room_group_id']]
+            value = room_row['night_price']
+            for price_range in self.room_segment_buckets:
+                if float(price_range[0]) <= float(value) <= float(price_range[1]):
+                    return str(price_range).replace(", ", "-")
+        
+        df['room_segment'] = df.apply(lambda x: check_room_segment(x), axis=1)
+        return df
         
 
     def map_npeople_to_npeople_buckets(self, df):
