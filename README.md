@@ -1,5 +1,5 @@
 # Recommender systems class project 1: Content based recommender
-#<hr/>
+
 ## Project description
 
 The aim of the project was to prepare real world data, create recommender and then evaluate it with said data.
@@ -76,6 +76,7 @@ My recommender also worked and calculated much faster than amazon one.
         jupyter notebook
 
 In git bash or terminal
+
 4. From there you can look trough all files especially
 - project_1_data_preparation.ipynb
 - project_1_recommender_and_evaluation.ipynb
